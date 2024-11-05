@@ -1,0 +1,60 @@
+#include <Adafruit_CircuitPlayground.h>
+
+void setup() {
+  CircuitPlayground.begin();
+}
+
+void loop() {
+  // Check if button A or button B is pressed
+  if (CircuitPlayground.leftButton()) {
+    activeHeartBeat(); // Activate active heartbeat simulation
+  } else if (CircuitPlayground.rightButton()) {
+    restingHeartBeat(); // Activate resting heartbeat simulation
+  } else {
+    // Turn off all NeoPixels when neither button is pressed
+    turnOffHeartEffect();
+  }
+}
+
+void activeHeartBeat() {
+  // Active heartbeat simulation
+  for (int i = 0; i < 5; i++) { // Repeat the pulse a few times
+    blinkNeoPixels(255, 0, 0, 200, 100); // Blink with a high intensity and frequency
+    delay(150); // Delay between pulses
+  }
+}
+
+void restingHeartBeat() {
+  // Resting heartbeat simulation
+  for (int i = 0; i < 5; i++) { // Repeat the pulse a few times
+    blinkNeoPixels(255, 0, 0, 150, 200); // Blink with a lower intensity and frequency
+    delay(300); // Delay between pulses
+  }
+}
+
+void blinkNeoPixels(int red, int green, int blue, int toneFrequency, int toneDuration) {
+  // Turn on NeoPixels
+  setAllNeoPixels(red, green, blue);
+  CircuitPlayground.playTone(toneFrequency, toneDuration); // Play heartbeat sound
+  delay(100); // Keep NeoPixels on for a moment
+
+  // Turn off NeoPixels
+  turnOffHeartEffect();
+  delay(100); // Keep NeoPixels off for a moment
+}
+
+void setAllNeoPixels(int red, int green, int blue) {
+  // Set all NeoPixels to specified color
+  for (int i = 0; i < CircuitPlayground.strip.numPixels(); i++) {
+    CircuitPlayground.strip.setPixelColor(i, CircuitPlayground.strip.Color(red, green, blue)); // Set color
+  }
+  CircuitPlayground.strip.show();
+}
+
+void turnOffHeartEffect() {
+  // Turn off all NeoPixels
+  for (int i = 0; i < CircuitPlayground.strip.numPixels(); i++) {
+    CircuitPlayground.strip.setPixelColor(i, CircuitPlayground.strip.Color(0, 0, 0)); // Turn off
+  }
+  CircuitPlayground.strip.show();
+}
