@@ -1,0 +1,33 @@
+#include <Adafruit_CircuitPlayground.h>
+#include <Servo.h>
+
+// Create Servo object
+Servo myServo;
+
+// Define the pin for the continuous servo signal
+const int servoPin = 12;
+
+void setup() {
+  // Initialize the Circuit Playground and Servo
+  CircuitPlayground.begin();
+  myServo.attach(servoPin);
+}
+
+void loop() {
+  // Check if Button A is pressed
+  if (CircuitPlayground.leftButton()) {
+    // Rotate clockwise slowly
+    myServo.write(180);  // Full speed clockwise
+    delay(0);  // Adjust this delay to control speed (slower = larger value)
+  } 
+  // Check if Button B is pressed
+  else if (CircuitPlayground.rightButton()) {
+    // Rotate counterclockwise slowly
+    myServo.write(0);  // Full speed counterclockwise
+    delay(0);  // Adjust this delay to control speed (slower = larger value)
+  } 
+  else {
+    // Stop the servo (neutral position)
+    myServo.write(90);  // Neutral position (stopped)
+  }
+}
