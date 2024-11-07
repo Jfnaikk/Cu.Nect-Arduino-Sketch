@@ -1,0 +1,147 @@
+//To create the "holding hands" notification system for Project Cu.nect, I configured two Circuit Playground boards:
+//one as the Master (sender) and the other as the Slave (receiver). When the Master Circuit Playground sends a notification, 
+//the Slave will respond by simulating the sensation of holding hands using a servo motor. The Master board sends a trigger signal, 
+//and the Slave board responds with a servo movement and visual NeoPixel feedback.
+
+//In this setup:
+
+//One Circuit Playground acts as the "Master" (the one you press the button on).
+//The other Circuit Playground acts as the "Slave" (the one controlling the servo motor and NeoPixels).
+//The Master will send a signal over I2C when Button A is pressed, and the Slave will start the sequence based on that signal.
+
+//Master Code:
+
+#include <Wire.h>
+#include <Adafruit_CircuitPlayground.h>
+
+#define SLAVE_ADDRESS 0x08  // Define an I2C address for the slave
+
+void setup() {
+  CircuitPlayground.begin();
+  Wire.begin();  // Initialize as I2C master
+}
+
+void loop() {
+  if (CircuitPlayground.leftButton()) {
+    Wire.beginTransmission(SLAVE_ADDRESS);
+    Wire.write("START");  // Send a signal to start the sequence
+    Wire.endTransmission();
+    delay(500);  // Small delay to debounce the button
+  }
+}
+
+//Slave Code:
+#include <Adafruit_CircuitPlayground.h>
+#include <Servo.h>
+#include <Wire.h>
+
+// Define the I2C address for the slave
+#define SLAVE_ADDRESS 0x08  // Make sure this matches the master code address
+
+// Create Servo object
+Servo myServo;
+
+// Define the pin for the continuous servo signal
+const int servoPin = 12;
+
+// Timing variables
+unsigned long previousMillis = 0;
+const long clockwiseTime = 8000;        // 8 seconds clockwise
+const long pauseTime = 4000;            // 4 seconds pause
+const long counterClockwiseTime = 7000; // 7 seconds counterclockwise
+bool isRunning = false;                 // Flag to control the sequence start/stop
+bool cycleComplete = false;             // Flag to indicate completion of a cycle
+
+// Define phases for sequence
+enum Phase {
+  CLOCKWISE,
+  PAUSE,
+  COUNTERCLOCKWISE,
+  STOPPED
+};
+
+Phase currentPhase = STOPPED;
+
+void setup() {
+  CircuitPlayground.begin();
+  myServo.attach(servoPin);
+  Wire.begin(SLAVE_ADDRESS);  // Initialize as I2C slave
+  Wire.onReceive(receiveEvent);  // Register receive event
+}
+
+void loop() {
+  if (isRunning) {
+    unsigned long currentMillis = millis();
+
+    switch (currentPhase) {
+      case CLOCKWISE:
+        if (currentMillis - previousMillis < clockwiseTime) {
+          myServo.write(180);            // Clockwise rotation
+          animateNeopixels(255, 0, 0);   // Pulsating red for clockwise
+        } else {
+          currentPhase = PAUSE;          // Move to pause phase
+          previousMillis = currentMillis; // Reset timing for pause
+        }
+        break;
+
+      case PAUSE:
+        if (currentMillis - previousMillis < pauseTime) {
+          myServo.write(90);              // Stop servo during pause
+          CircuitPlayground.clearPixels(); // Clear NeoPixels
+        } else {
+          currentPhase = COUNTERCLOCKWISE; // Move to counterclockwise phase
+          previousMillis = currentMillis;  // Reset timing for counterclockwise
+        }
+        break;
+
+      case COUNTERCLOCKWISE:
+        if (currentMillis - previousMillis < counterClockwiseTime) {
+          myServo.write(0);               // Counterclockwise rotation
+          animateNeopixels(0, 255, 0);    // Pulsating green for counterclockwise
+        } else {
+          currentPhase = STOPPED;         // End of cycle, go to stopped
+          previousMillis = currentMillis;
+        }
+        break;
+
+      case STOPPED:
+        myServo.write(90);                // Stop the servo
+        CircuitPlayground.clearPixels();  // Clear NeoPixels
+        isRunning = false;                // Stop the sequence
+        cycleComplete = true;             // Mark the cycle as complete
+        break;
+    }
+  }
+}
+
+// Function to animate NeoPixels with a pulsing effect in a specified color
+void animateNeopixels(int red, int green, int blue) {
+  for (int i = 0; i < 10; i++) {
+    CircuitPlayground.setPixelColor(i, red, green, blue);
+    delay(50);                         // Delay to create sequential lighting effect
+    CircuitPlayground.setPixelColor(i, 0, 0, 0);  // Turn off the pixel for pulsing effect
+  }
+}
+
+// Function to handle I2C receive event
+void receiveEvent(int bytes) {
+  while (Wire.available()) {
+    char c = Wire.read();
+    if (c == 'S') {  // Check for "START" signal
+      isRunning = true;                 // Start the sequence
+      cycleComplete = false;            // Reset the cycle completion flag
+      currentPhase = CLOCKWISE;         // Start with clockwise rotation
+      previousMillis = millis();        // Reset the timer
+    }
+  }
+}
+
+//Explanation:
+//Master Code:
+//Checks if Button A is pressed. If pressed, it sends "START" to the slave.
+
+//Slave Code:
+//Listens for data over I2C. When it detects "START", it sets isRunning to true and begins the sequence.
+//This setup will allow you to control the sequence on the slave board by pressing Button A on the master board. 
+//You can adjust the I2C address and timing as needed.
+
