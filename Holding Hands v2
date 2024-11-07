@@ -9,6 +9,8 @@
 //The other Circuit Playground acts as the "Slave" (the one controlling the servo motor and NeoPixels).
 //The Master will send a signal over I2C when Button A is pressed, and the Slave will start the sequence based on that signal.
 
+
+//servo signal wire to point 12, SCL,SDA,GND to connect boards
 //Master Code:
 
 #include <Wire.h>
