@@ -1,0 +1,92 @@
+#include <Adafruit_CircuitPlayground.h>
+
+// Mood colors (in RGB format)
+int colors[][3] = {
+  {255, 0, 0},    // Red - Energy
+  {0, 255, 0},    // Green - Calm
+  {0, 0, 255},    // Blue - Relaxation
+  {255, 255, 0},  // Yellow - Happiness
+  {128, 0, 128},  // Purple - Creativity
+  {255, 255, 255} // White - Neutrality
+};
+
+int current_color_index = 0;
+bool rainbow_mode = false;
+
+// Rainbow colors (Red, Orange, Yellow, Green, Blue, Indigo, Violet)
+int rainbowColors[][3] = {
+  {255, 0, 0},    // Red
+  {255, 127, 0},  // Orange
+  {255, 255, 0},  // Yellow
+  {0, 255, 0},    // Green
+  {0, 0, 255},    // Blue
+  {75, 0, 130},   // Indigo
+  {238, 130, 238} // Violet
+};
+
+// Rainbow mode with a more dynamic light show (no buzzer)
+void rainbowLightShow() {
+  for (int i = 0; i < 50; i++) { // 50 random pulses
+    // Choose a color from the rainbow palette
+    int colorIndex = i % 7;  // Cycle through the 7 colors of the rainbow
+    int r = rainbowColors[colorIndex][0];
+    int g = rainbowColors[colorIndex][1];
+    int b = rainbowColors[colorIndex][2];
+
+    // Randomly choose a NeoPixel to turn on
+    int pixel = random(0, 10);  // Select a random NeoPixel (0 to 9)
+    
+    // Set the selected NeoPixel to the current rainbow color
+    CircuitPlayground.setPixelColor(pixel, r, g, b);
+    
+    // Wait for a brief moment for the pulsating effect
+    delay(random(50, 200));  // Random delay for pulsating effect
+    
+    // Turn off the selected NeoPixel
+    CircuitPlayground.setPixelColor(pixel, 0, 0, 0);
+    
+    // Randomize the delay to make the pulses more dynamic
+    delay(random(50, 200));
+  }
+
+  // Reset NeoPixels after the rainbow light show
+  CircuitPlayground.clearPixels();
+}
+
+// Mood light with sequential circular effect and hold final NeoPixel
+void circularMoodAnimation(int r, int g, int b) {
+  // Turn off all pixels to start fresh
+  CircuitPlayground.clearPixels();
+
+  for (int i = 0; i < 10; i++) {
+    CircuitPlayground.setPixelColor(i, r, g, b);
+    delay(100);  // Delay for circular effect
+    CircuitPlayground.setPixelColor(i, 0, 0, 0); // Turn off the previous pixel
+  }
+
+  // Leave the last NeoPixel on in the chosen color
+  CircuitPlayground.setPixelColor(9, r, g, b);
+  CircuitPlayground.playTone(500, 100); // Play a short notification buzz
+  delay(7000);  // Keep the last NeoPixel on for 7 seconds
+  CircuitPlayground.clearPixels();  // Turn off all pixels after 7 seconds
+}
+
+void setup() {
+  CircuitPlayground.begin();  // Initialize the Circuit Playground
+}
+
+void loop() {
+  // Check for left button press (cycle through mood colors)
+  if (CircuitPlayground.leftButton() && !rainbow_mode) {
+    current_color_index = (current_color_index + 1) % 6;
+    circularMoodAnimation(colors[current_color_index][0], colors[current_color_index][1], colors[current_color_index][2]);
+    delay(100);  // Debounce delay for button
+  }
+
+  // Check for right button press (activate rainbow mode)
+  if (CircuitPlayground.rightButton()) {
+    rainbow_mode = true;  // Activate rainbow mode
+    rainbowLightShow();    // Trigger the pulsating light show with rainbow colors
+    rainbow_mode = false; // Reset rainbow mode after the sequence
+  }
+}
